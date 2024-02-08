@@ -43,7 +43,18 @@ class EditableDiskList extends React.Component {
     nameCount++
 
     uuid++
-    const disk = { id: `new_disk_${uuid}`, name: `disk-${nameCount}`, path: '', storageAvailable: 0, storageMaximum: 0, storageReserved: 0, storageScheduled: 0, allowScheduling: false, evictionRequested: false }
+    const disk = {
+      id: `new_disk_${uuid}`,
+      name: `disk-${nameCount}`,
+      path: '',
+      storageAvailable: 0,
+      storageMaximum: 0,
+      storageReserved: 0,
+      storageScheduled: 0,
+      allowScheduling: false,
+      evictionRequested: false,
+      diskType: 'filesystem',
+    }
     newData.push(disk)
     this.setState({ data: newData })
   }
@@ -157,25 +168,12 @@ class EditableDiskList extends React.Component {
         <div style={{ display: 'flex' }}>
           <div className={styles.formItem} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '15px 30px' }}>
             <div className={styles.label}>
-              Engine Manager CPU Request
+              Instance Manager CPU Request
             </div>
             <div className={styles.control} style={{ marginTop: 10 }}>
               <div style={{ display: 'flex' }}>
-                {getFieldDecorator('engineManagerCPURequest', {
-                  initialValue: node.engineManagerCPURequest,
-                })(<InputNumber size="large" style={{ width: '100%' }} parser={this.limitNumber} min={0} />)}
-                <span className="ant-input-group-addon">m</span>
-              </div>
-            </div>
-          </div>
-          <div className={styles.formItem} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '15px 30px' }}>
-            <div className={styles.label}>
-              Replica Manager CPU Request
-            </div>
-            <div className={styles.control} style={{ marginTop: 10 }}>
-              <div style={{ display: 'flex' }}>
-                {getFieldDecorator('replicaManagerCPURequest', {
-                  initialValue: node.replicaManagerCPURequest,
+                {getFieldDecorator('instanceManagerCPURequest', {
+                  initialValue: node.instanceManagerCPURequest,
                 })(<InputNumber size="large" style={{ width: '100%' }} parser={this.limitNumber} min={0} />)}
                 <span className="ant-input-group-addon">m</span>
               </div>

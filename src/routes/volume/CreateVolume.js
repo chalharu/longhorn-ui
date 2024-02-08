@@ -1,6 +1,16 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Form, Input, InputNumber, Select, Checkbox, Spin, Collapse } from 'antd'
+import {
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Checkbox,
+  Spin,
+  Collapse,
+  Tooltip,
+  Icon,
+} from 'antd'
 import { ModalBlur } from '../../components'
 import { frontends } from './helper/index'
 const FormItem = Form.Item
@@ -38,6 +48,8 @@ const modal = ({
   diskTags,
   backingImages,
   tagsLoading,
+  v1DataEngineEnabled,
+  v2DataEngineEnabled,
   form: {
     getFieldDecorator,
     validateFields,
@@ -53,6 +65,9 @@ const modal = ({
       const data = {
         ...getFieldsValue(),
         size: `${getFieldsValue().size}${getFieldsValue().unit}`,
+        snapshotMaxSize: `${getFieldsValue().snapshotMaxSize}${
+          getFieldsValue().snapshotSizeUnit
+        }`,
       }
 
       if (data.unit) {
@@ -208,6 +223,26 @@ const modal = ({
             { backingImages.map(backingImage => <Option key={backingImage.name} value={backingImage.name}>{backingImage.name}</Option>) }
           </Select>)}
         </FormItem>
+        <FormItem label="Data Engine" hasFeedback {...formItemLayout}>
+          {getFieldDecorator('dataEngine', {
+            initialValue: 'v1',
+            rules: [
+              {
+                validator: (rule, value, callback) => {
+                  if (value === 'v1' && !v1DataEngineEnabled) {
+                    callback('v1 data engine is not enabled')
+                  } else if (value === 'v2' && !v2DataEngineEnabled) {
+                    callback('v2 data engine is not enabled')
+                  }
+                  callback()
+                },
+              },
+            ],
+          })(<Select>
+            <Option key={'v1'} value={'v1'}>v1</Option>
+            <Option key={'v2'} value={'v2'}>v2</Option>
+          </Select>)}
+        </FormItem>
         <FormItem label="Encrypted" {...formItemLayout}>
           {getFieldDecorator('encrypted', {
             valuePropName: 'encrypted',
@@ -241,6 +276,64 @@ const modal = ({
               { defaultSnapshotDataIntegrityOption.map(option => <Option key={option.key} value={option.value}>{option.key}</Option>) }
               </Select>)}
             </FormItem>
+            <FormItem label={
+              <span>
+                Snapshot Max Count
+                <span style={{
+                  marginLeft: 10,
+                  color: '#faad14',
+                }}>
+                  <Tooltip title="Set '0' to inherit global settings">
+                    <Icon type="question-circle-o" />
+                  </Tooltip>
+                </span>
+              </span>
+            }
+              style={{ flex: 0.6 }}
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 14 }}>
+              {getFieldDecorator('snapshotMaxCount', {
+                initialValue: 0,
+              })(<InputNumber style={{ width: '250px' }} />) }
+            </FormItem>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <FormItem
+                label={
+                <span>
+                  Snapshot Max Size
+                  <span style={{
+                    marginLeft: 10,
+                    color: '#faad14',
+                  }}>
+                    <Tooltip title="Set '0' for unrestricted size or at least twice volume size">
+                      <Icon type="question-circle-o" />
+                    </Tooltip>
+                  </span>
+                </span>}
+                style={{ paddingLeft: 93 }}
+                labelCol={{ span: 12 }}
+                wrapperCol={{ span: 12 }}
+              >
+                {getFieldDecorator('snapshotMaxSize', {
+                  initialValue: '0',
+                })(<Input style={{ maxWidth: '250px' }} />)}
+              </FormItem>
+
+               <FormItem>
+                {getFieldDecorator('snapshotSizeUnit', {
+                  initialValue: item.unit,
+                  rules: [{ required: true, message: 'Please select your unit!' }],
+                })(
+                  <Select
+                    style={{ width: '100px' }}
+                    onChange={unitChange}
+                  >
+                    <Option value="Mi">Mi</Option>
+                    <Option value="Gi">Gi</Option>
+                  </Select>,
+                )}
+              </FormItem>
+            </div>
             <FormItem label="Replicas Auto Balance" hasFeedback {...formItemLayoutForAdvanced}>
               {getFieldDecorator('replicaAutoBalance', {
                 initialValue: 'ignored',
@@ -260,6 +353,42 @@ const modal = ({
                 <Option key={'ignored'} value={'ignored'}>Ignored (Follow the global setting)</Option>
               </Select>)}
             </FormItem>
+            <FormItem label="Replica Soft Anti Affinity" hasFeedback {...formItemLayoutForAdvanced}>
+              {getFieldDecorator('replicaSoftAntiAffinity', {
+                initialValue: 'ignored',
+              })(<Select>
+                <Option key={'enabled'} value={'enabled'}>Enabled</Option>
+                <Option key={'disabled'} value={'disabled'}>Disabled</Option>
+                <Option key={'ignored'} value={'ignored'}>Ignored (Follow the global setting)</Option>
+              </Select>)}
+            </FormItem>
+            <FormItem label="Replica Zone Soft Anti Affinity" hasFeedback {...formItemLayoutForAdvanced}>
+              {getFieldDecorator('replicaZoneSoftAntiAffinity', {
+                initialValue: 'ignored',
+              })(<Select>
+                <Option key={'enabled'} value={'enabled'}>Enabled</Option>
+                <Option key={'disabled'} value={'disabled'}>Disabled</Option>
+                <Option key={'ignored'} value={'ignored'}>Ignored (Follow the global setting)</Option>
+              </Select>)}
+            </FormItem>
+            <FormItem label="Replica Disk Soft Anti Affinity" hasFeedback {...formItemLayoutForAdvanced}>
+              {getFieldDecorator('replicaDiskSoftAntiAffinity', {
+                initialValue: 'ignored',
+              })(<Select>
+                <Option key={'enabled'} value={'enabled'}>Enabled</Option>
+                <Option key={'disabled'} value={'disabled'}>Disabled</Option>
+                <Option key={'ignored'} value={'ignored'}>Ignored (Follow the global setting)</Option>
+              </Select>)}
+            </FormItem>
+            { getFieldsValue().dataEngine === 'v2' && <FormItem label="Offline Replica Rebuilding" hasFeedback {...formItemLayoutForAdvanced}>
+              {getFieldDecorator('offlineReplicaRebuilding', {
+                initialValue: 'ignored',
+              })(<Select>
+                <Option key={'enabled'} value={'enabled'}>Enabled</Option>
+                <Option key={'disabled'} value={'disabled'}>Disabled</Option>
+                <Option key={'ignored'} value={'ignored'}>Ignored (Follow the global setting)</Option>
+              </Select>)}
+            </FormItem>}
             <FormItem label="Disable Revision Counter" {...formItemLayoutForAdvanced}>
               {getFieldDecorator('revisionCounterDisabled', {
                 valuePropName: 'checked',
@@ -268,7 +397,6 @@ const modal = ({
             </FormItem>
           </Panel>
         </Collapse>
-
       </Form>
     </ModalBlur>
   )
@@ -288,6 +416,8 @@ modal.propTypes = {
   tagsLoading: PropTypes.bool,
   defaultDataLocalityValue: PropTypes.string,
   defaultRevisionCounterValue: PropTypes.bool,
+  v1DataEngineEnabled: PropTypes.bool,
+  v2DataEngineEnabled: PropTypes.bool,
   backingImages: PropTypes.array,
 }
 

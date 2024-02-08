@@ -9,12 +9,15 @@ import VolumeActions from '../VolumeActions'
 import VolumeInfo from './VolumeInfo'
 import styles from './index.less'
 import AttachHost from '../AttachHost'
+import DetachHost from '../DetachHost'
 import EngineUpgrade from '../EngineUpgrade'
 import UpdateReplicaCount from '../UpdateReplicaCount'
 import UpdateDataLocality from '../UpdateDataLocality'
 import UpdateSnapshotDataIntegrityModal from '../UpdateSnapshotDataIntegrityModal'
 import UpdateAccessMode from '../UpdateAccessMode'
 import UpdateUnmapMarkSnapChainRemovedModal from '../UpdateUnmapMarkSnapChainRemovedModal'
+import UpdateSnapshotMaxCountModal from '../UpdateSnapshotMaxCountModal.js'
+import UpdateSnapshotMaxSizeModal from '../UpdateSnapshotMaxSizeModal.js'
 import Snapshots from './Snapshots'
 import RecurringJob from './RecurringJob'
 import EventList from './EventList'
@@ -23,15 +26,69 @@ import CreatePVAndPVCSingle from '../CreatePVAndPVCSingle'
 import ChangeVolumeModal from '../ChangeVolumeModal'
 import ExpansionVolumeSizeModal from '../ExpansionVolumeSizeModal'
 import UpdateReplicaAutoBalanceModal from '../UpdateReplicaAutoBalanceModal'
+import CommonModal from '../components/CommonModal'
 import Salvage from '../Salvage'
 import { ReplicaList, ExpansionErrorDetail } from '../../../components'
-import ConfirmModalWithWorkload from '../ConfirmModalWithWorkload'
-import { genAttachHostModalProps, getEngineUpgradeModalProps, getUpdateReplicaCountModalProps, getUpdateDataLocalityModalProps, getUpdateAccessModeModalProps, getUpdateReplicaAutoBalanceModalProps, getUnmapMarkSnapChainRemovedModalProps, getUpdateSnapshotDataIntegrityProps } from '../helper'
+import {
+  getAttachHostModalProps,
+  getEngineUpgradeModalProps,
+  getUpdateReplicaCountModalProps,
+  getUpdateDataLocalityModalProps,
+  getUpdateAccessModeModalProps,
+  getUpdateReplicaAutoBalanceModalProps,
+  getUnmapMarkSnapChainRemovedModalProps,
+  getUpdateSnapshotDataIntegrityProps,
+  getUpdateReplicaSoftAntiAffinityModalProps,
+  getDetachHostModalProps,
+  getUpdateOfflineReplicaRebuildingModalProps,
+  getUpdateSnapshotMaxCountModalProps,
+  getUpdateSnapshotMaxSizeModalProps,
+} from '../helper'
 
 const confirm = Modal.confirm
 
 function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, host, volume, volumeId, setting, loading, backingImage, recurringJob }) {
-  const { data, attachHostModalVisible, engineUpgradeModalVisible, salvageModalVisible, updateReplicaCountModalVisible, createPVAndPVCModalSingleKey, defaultPVName, defaultPVCName, pvNameDisabled, previousNamespace, createPVAndPVCSingleVisible, nameSpaceDisabled, changeVolumeModalKey, changeVolumeActivate, changeVolumeModalVisible, previousChecked, expansionVolumeSizeModalVisible, expansionVolumeSizeModalKey, updateDataLocalityModalVisible, updateDataLocalityModalKey, updateAccessModeModalVisible, updateAccessModeModalKey, confirmModalWithWorkloadVisible, confirmModalWithWorkloadKey, updateReplicaAutoBalanceModalVisible, updateReplicaAutoBalanceModalKey, volumeRecurringJobs, unmapMarkSnapChainRemovedModalKey, unmapMarkSnapChainRemovedModalVisible, updateSnapshotDataIntegrityModalVisible, updateSnapshotDataIntegrityModalKey } = volume
+  const {
+    data,
+    attachHostModalVisible,
+    engineUpgradeModalVisible,
+    salvageModalVisible,
+    updateReplicaCountModalVisible,
+    createPVAndPVCModalSingleKey,
+    defaultPVName,
+    defaultPVCName,
+    pvNameDisabled,
+    previousNamespace,
+    createPVAndPVCSingleVisible,
+    nameSpaceDisabled,
+    changeVolumeModalKey,
+    changeVolumeActivate,
+    changeVolumeModalVisible,
+    previousChecked,
+    expansionVolumeSizeModalVisible,
+    expansionVolumeSizeModalKey,
+    updateDataLocalityModalVisible,
+    updateDataLocalityModalKey,
+    updateAccessModeModalVisible,
+    updateAccessModeModalKey,
+    updateReplicaAutoBalanceModalVisible,
+    updateReplicaAutoBalanceModalKey,
+    volumeRecurringJobs,
+    unmapMarkSnapChainRemovedModalKey,
+    unmapMarkSnapChainRemovedModalVisible,
+    updateSnapshotDataIntegrityModalVisible,
+    updateSnapshotDataIntegrityModalKey,
+    softAntiAffinityKey,
+    updateReplicaSoftAntiAffinityVisible,
+    updateReplicaSoftAntiAffinityModalKey,
+    updateOfflineReplicaRebuildingVisible,
+    offlineReplicaRebuildingKey,
+    updateOfflineReplicaRebuildingModalKey,
+    detachHostModalVisible,
+    detachHostModalKey,
+    updateSnapshotMaxCountModalVisible,
+    updateSnapshotMaxSizeModalVisible,
+  } = volume
   const { backupStatus, backupTargetAvailable, backupTargetMessage } = backup
   const { data: snapshotData, state: snapshotModalState } = snapshotModal
   const { data: recurringJobData } = recurringJob
@@ -152,6 +209,7 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
 
   const volumeActionsProps = {
     engineImages,
+    engineUpgradePerNodeLimit,
     takeSnapshot(record) {
       dispatch({
         type: 'snapshotModal/snapshotAction',
@@ -173,6 +231,12 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
         },
       })
     },
+    showDetachHost(record) {
+      dispatch({
+        type: 'volume/showDetachHostModal',
+        payload: record,
+      })
+    },
     showSnapshots(record) {
       dispatch(routerRedux.push({
         pathname: `/volume/${record.name}/snapshots`,
@@ -190,14 +254,6 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
       dispatch({
         type: 'volume/deleteAndRedirect',
         payload: record,
-      })
-    },
-    detach(url) {
-      dispatch({
-        type: 'volume/detach',
-        payload: {
-          url,
-        },
       })
     },
     showEngineUpgrade(record) {
@@ -231,6 +287,22 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
         payload: {
           image: record.currentImage,
           url: record.actions.engineUpgrade,
+        },
+      })
+    },
+    updateSnapshotMaxCount(record) {
+      dispatch({
+        type: 'volume/showUpdateSnapshotMaxCountModal',
+        payload: {
+          selected: record,
+        },
+      })
+    },
+    updateSnapshotMaxSize(record) {
+      dispatch({
+        type: 'volume/showUpdateSnapshotMaxSizeModal',
+        payload: {
+          selected: record,
         },
       })
     },
@@ -294,6 +366,7 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
         })
       }
     },
+
     showCancelExpansionModal(record) {
       let message = ''
       let lastExpansionError = ''
@@ -334,16 +407,47 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
         },
       })
     },
-    confirmDetachWithWorkload() {
-      dispatch({
-        type: 'volume/showConfirmDetachWithWorkload',
-      })
-    },
     showUnmapMarkSnapChainRemovedModal(record) {
       dispatch({
         type: 'volume/showUnmapMarkSnapChainRemovedModal',
         payload: {
           selected: record,
+        },
+      })
+    },
+    showUpdateReplicaSoftAntiAffinityModal(record) {
+      dispatch({
+        type: 'volume/showUpdateReplicaSoftAntiAffinityModal',
+        payload: {
+          volume: record,
+          softAntiAffinityKey: 'updateReplicaSoftAntiAffinity',
+        },
+      })
+    },
+    showUpdateReplicaZoneSoftAntiAffinityModal(record) {
+      dispatch({
+        type: 'volume/showUpdateReplicaSoftAntiAffinityModal',
+        payload: {
+          volume: record,
+          softAntiAffinityKey: 'updateReplicaZoneSoftAntiAffinity',
+        },
+      })
+    },
+    showUpdateReplicaDiskSoftAntiAffinityModal(record) {
+      dispatch({
+        type: 'volume/showUpdateReplicaSoftAntiAffinityModal',
+        payload: {
+          volume: record,
+          softAntiAffinityKey: 'updateReplicaDiskSoftAntiAffinity',
+        },
+      })
+    },
+    showOfflineReplicaRebuildingModal(record) {
+      dispatch({
+        type: 'volume/showOfflineReplicaRebuildingModal',
+        payload: {
+          volumes: record,
+          offlineReplicaRebuildingKey: 'updateOfflineReplicaRebuilding',
         },
       })
     },
@@ -360,11 +464,12 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
     },
   }
 
-  const attachHostModalProps = genAttachHostModalProps([selectedVolume], hosts, attachHostModalVisible, dispatch)
-
+  const attachHostModalProps = getAttachHostModalProps([selectedVolume], hosts, attachHostModalVisible, dispatch)
+  const detachHostModalProps = getDetachHostModalProps([selectedVolume], detachHostModalVisible, dispatch)
   const engineUpgradeModalProps = getEngineUpgradeModalProps([selectedVolume], engineImages, engineUpgradePerNodeLimit, engineUpgradeModalVisible, dispatch)
-
   const updateReplicaAutoBalanceModalProps = getUpdateReplicaAutoBalanceModalProps([selectedVolume], updateReplicaAutoBalanceModalVisible, dispatch)
+  const updateReplicaSoftAntiAffinityModalProps = getUpdateReplicaSoftAntiAffinityModalProps(selectedVolume, [], updateReplicaSoftAntiAffinityVisible, softAntiAffinityKey, dispatch)
+  const updateOfflineReplicaRebuildingModalProps = getUpdateOfflineReplicaRebuildingModalProps(selectedVolume, [], updateOfflineReplicaRebuildingVisible, offlineReplicaRebuildingKey, dispatch)
 
   const recurringJobProps = {
     dataSource: volumeRecurringJobs,
@@ -431,6 +536,9 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
   const unmapMarkSnapChainRemovedModalProps = getUnmapMarkSnapChainRemovedModalProps(selectedVolume, unmapMarkSnapChainRemovedModalVisible, dispatch)
   const updateSnapshotDataIntegrityModalProps = getUpdateSnapshotDataIntegrityProps(selectedVolume, updateSnapshotDataIntegrityModalVisible, defaultSnapshotDataIntegrityOption, dispatch)
   const updateAccessModeModalProps = getUpdateAccessModeModalProps(selectedVolume, updateAccessModeModalVisible, dispatch)
+  const updateSnapshotMaxCountModalProps = getUpdateSnapshotMaxCountModalProps(selectedVolume,
+    updateSnapshotMaxCountModalVisible, dispatch)
+  const updateSnapshotMaxSizeModalProps = getUpdateSnapshotMaxSizeModalProps(selectedVolume, updateSnapshotMaxSizeModalVisible, dispatch)
   const createPVAndPVCSingleProps = {
     item: {
       defaultPVName,
@@ -514,32 +622,6 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
     },
   }
 
-  const confirmModalWithWorkloadProps = {
-    visible: confirmModalWithWorkloadVisible,
-    title: `Detach volume ${selectedVolume.name}`,
-    onOk() {
-      if (selectedVolume.actions && selectedVolume.actions.detach) {
-        dispatch({
-          type: 'volume/detach',
-          payload: {
-            url: selectedVolume.actions.detach,
-          },
-        })
-      }
-      dispatch({
-        type: 'volume/hideConfirmDetachWithWorkload',
-      })
-      dispatch({
-        type: 'snapshotModal/stopPolling',
-      })
-    },
-    onCancel() {
-      dispatch({
-        type: 'volume/hideConfirmDetachWithWorkload',
-      })
-    },
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div>
@@ -573,6 +655,7 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
           </Col>
         </Row>
         {attachHostModalVisible && <AttachHost {...attachHostModalProps} />}
+        {detachHostModalVisible && <DetachHost key={detachHostModalKey} {...detachHostModalProps} />}
         {engineUpgradeModalVisible && <EngineUpgrade {...engineUpgradeModalProps} />}
         {updateReplicaCountModalVisible && <UpdateReplicaCount {...updateReplicaCountModalProps} />}
         {updateDataLocalityModalVisible ? <UpdateDataLocality key={updateDataLocalityModalKey} {...updateDataLocalityModalProps} /> : ''}
@@ -582,9 +665,12 @@ function VolumeDetail({ snapshotModal, dispatch, backup, engineimage, eventlog, 
         {expansionVolumeSizeModalVisible ? <ExpansionVolumeSizeModal key={expansionVolumeSizeModalKey} {...expansionVolumeSizeModalProps}></ExpansionVolumeSizeModal> : ''}
         {salvageModalVisible ? <Salvage {...salvageModalProps} /> : ''}
         {changeVolumeModalVisible ? <ChangeVolumeModal key={changeVolumeModalKey} {...changeVolumeModalProps} /> : ''}
-        {createPVAndPVCSingleVisible ? <CreatePVAndPVCSingle key={createPVAndPVCModalSingleKey} {...createPVAndPVCSingleProps} /> : ''}
-        {confirmModalWithWorkloadVisible ? <ConfirmModalWithWorkload key={confirmModalWithWorkloadKey} {...confirmModalWithWorkloadProps} /> : ''}
+        { createPVAndPVCSingleVisible ? <CreatePVAndPVCSingle key={createPVAndPVCModalSingleKey} {...createPVAndPVCSingleProps} /> : '' }
+        { updateSnapshotMaxCountModalVisible ? <UpdateSnapshotMaxCountModal {...updateSnapshotMaxCountModalProps} /> : '' }
+        { updateSnapshotMaxSizeModalVisible ? <UpdateSnapshotMaxSizeModal {...updateSnapshotMaxSizeModalProps} /> : '' }
         {updateReplicaAutoBalanceModalVisible ? <UpdateReplicaAutoBalanceModal key={updateReplicaAutoBalanceModalKey} {...updateReplicaAutoBalanceModalProps} /> : ''}
+        {updateReplicaSoftAntiAffinityVisible ? <CommonModal key={updateReplicaSoftAntiAffinityModalKey} {...updateReplicaSoftAntiAffinityModalProps} /> : ''}
+        {updateOfflineReplicaRebuildingVisible ? <CommonModal key={updateOfflineReplicaRebuildingModalKey} {...updateOfflineReplicaRebuildingModalProps} /> : ''}
       </div>
     </div>
   )

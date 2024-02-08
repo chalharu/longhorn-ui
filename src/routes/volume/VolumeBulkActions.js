@@ -6,7 +6,33 @@ import style from './VolumeBulkActions.less'
 
 const confirm = Modal.confirm
 
-function bulkActions({ selectedRows, engineImages, bulkDeleteVolume, showBulkEngineUpgrade, showBulkChangeVolume, showBulkAttachHost, bulkDetach, bulkBackup, bulkExpandVolume, createPVAndPVC, confirmDetachWithWorkload, commandKeyDown, showUpdateBulkReplicaCount, showUpdateBulkDataLocality, showUpdateBulkAccessMode, engineUpgradePerNodeLimit, showUpdateReplicaAutoBalanceModal, backupTargetAvailable, backupTargetMessage, showBulkUnmapMarkSnapChainRemovedModal, trimBulkFilesystem, showUpdateBulkSnapshotDataIntegrityModal }) {
+function bulkActions({
+  selectedRows,
+  engineImages,
+  bulkDeleteVolume,
+  showBulkEngineUpgrade,
+  showBulkChangeVolume,
+  showBulkAttachHost,
+  bulkBackup,
+  bulkExpandVolume,
+  createPVAndPVC,
+  showBulkDetachHost,
+  commandKeyDown,
+  showUpdateBulkReplicaCount,
+  showUpdateBulkDataLocality,
+  showUpdateBulkAccessMode,
+  engineUpgradePerNodeLimit,
+  showUpdateReplicaAutoBalanceModal,
+  backupTargetAvailable,
+  backupTargetMessage,
+  showBulkUnmapMarkSnapChainRemovedModal,
+  trimBulkFilesystem,
+  showUpdateBulkSnapshotDataIntegrityModal,
+  showUpdateReplicaSoftAntiAffinityModal,
+  showUpdateReplicaZoneSoftAntiAffinityModal,
+  showUpdateReplicaDiskSoftAntiAffinityModal,
+  showOfflineReplicaRebuildingModal,
+}) {
   const deleteWranElement = (rows) => {
     let workloadResources = []
     let pvResources = []
@@ -69,16 +95,7 @@ function bulkActions({ selectedRows, engineImages, bulkDeleteVolume, showBulkEng
         showBulkChangeVolume(selectedRows)
         break
       case 'detach':
-        if (selectedRows.some((ele) => ele.kubernetesStatus && ele.kubernetesStatus.workloadsStatus && !ele.kubernetesStatus.lastPodRefAt)) {
-          confirmDetachWithWorkload()
-        } else {
-          confirm({
-            title: `Are you sure you want to detach volume(s) ${selectedRows.map(item => item.name).join(', ')} ?`,
-            onOk() {
-              bulkDetach(selectedRows.map(item => item.actions.detach))
-            },
-          })
-        }
+        showBulkDetachHost(selectedRows)
         break
       case 'backup':
         bulkBackup(selectedRows)
@@ -107,6 +124,18 @@ function bulkActions({ selectedRows, engineImages, bulkDeleteVolume, showBulkEng
       case 'updateUnmapMarkSnapChainRemoved':
         showBulkUnmapMarkSnapChainRemovedModal(selectedRows)
         break
+      case 'updateReplicaSoftAntiAffinity':
+        showUpdateReplicaSoftAntiAffinityModal(selectedRows)
+        break
+      case 'updateReplicaZoneSoftAntiAffinity':
+        showUpdateReplicaZoneSoftAntiAffinityModal(selectedRows)
+        break
+      case 'updateReplicaDiskSoftAntiAffinity':
+        showUpdateReplicaDiskSoftAntiAffinityModal(selectedRows)
+        break
+      case 'updateOfflineReplicaRebuilding':
+        showOfflineReplicaRebuildingModal(selectedRows)
+        break
       case 'trimFilesystem':
         confirm({
           title: `Are you sure you want to trim (${selectedRows.map(item => item.name).join(', ')}) Fileystem ?`,
@@ -119,7 +148,7 @@ function bulkActions({ selectedRows, engineImages, bulkDeleteVolume, showBulkEng
     }
   }
   const hasAction = action => selectedRows.every(item => Object.keys(item.actions).includes(action))
-  const hasDoingState = (exclusions = []) => selectedRows.some(item => (item.state.endsWith('ing') && !exclusions.includes(item.state)) || item.currentImage !== item.engineImage)
+  const hasDoingState = (exclusions = []) => selectedRows.some(item => (item.state.endsWith('ing') && !exclusions.includes(item.state)) || item.currentImage !== item.image)
   const isSnapshotDisabled = () => selectedRows.every(item => !item.actions || !item.actions.snapshotCreate)
   const disableUpdateBulkReplicaCount = () => selectedRows.some(item => !item.actions || !item.actions.updateReplicaCount)
   const disableUpdateBulkDataLocality = () => selectedRows.some(item => !item.actions || !item.actions.updateDataLocality)
@@ -137,20 +166,20 @@ function bulkActions({ selectedRows, engineImages, bulkDeleteVolume, showBulkEng
       if (engineUpgradePerNodeLimit && engineUpgradePerNodeLimit.value !== '0') {
         let defaultEngineImage = engineImages.find(engineImage => engineImage.default)
         if (defaultEngineImage) {
-          return item.engineImage === defaultEngineImage.image
+          return item.image === defaultEngineImage.image
         }
         return true
       }
       return false
     })
   }
-  const conditionsScheduled = () => selectedRows.some(item => item.conditions && item.conditions.scheduled && item.conditions.scheduled.status && item.conditions.scheduled.status.toLowerCase() === 'true')
-  const upgradingEngine = () => selectedRows.some((item) => item.currentImage !== item.engineImage)
+  const conditionsScheduled = () => selectedRows.some(item => item.conditions && item.conditions.Scheduled && item.conditions.Scheduled.status && item.conditions.Scheduled.status.toLowerCase() === 'true')
+  const upgradingEngine = () => selectedRows.some((item) => item.currentImage !== item.image)
   const notAttached = () => selectedRows.some(item => item.state !== 'attached')
   /*
   * PV/PVC decides whether to disable it
   */
-  const hasMoreOptions = () => engineImages.findIndex(engineImage => selectedRows.findIndex(item => item.engineImage === engineImage.image) === -1) === -1
+  const hasMoreOptions = () => engineImages.findIndex(engineImage => selectedRows.findIndex(item => item.image === engineImage.image) === -1) === -1
   const allActions = [
     { key: 'delete', name: 'Delete', disabled() { return selectedRows.length === 0 } },
     { key: 'attach', name: 'Attach', disabled() { return selectedRows.length === 0 || selectedRows.some((item) => !attachable(item)) } },
@@ -169,6 +198,10 @@ function bulkActions({ selectedRows, engineImages, bulkDeleteVolume, showBulkEng
     { key: 'createPVAndPVC', name: 'Create PV/PVC', disabled() { return selectedRows.length === 0 || isHasStandy() || hasVolumeRestoring() || isHasPVC() || isFaulted() || !hasAction('pvCreate') || !hasAction('pvcCreate') } },
     { key: 'bulkChangeVolume', name: 'Activate Disaster Recovery Volume', disabled() { return selectedRows.length === 0 || selectedRows.some((item) => !item.standby) } },
     { key: 'updateUnmapMarkSnapChainRemoved', name: 'Allow snapshots removal during trim', disabled() { return selectedRows.length === 0 } },
+    { key: 'updateReplicaSoftAntiAffinity', name: 'Update Replica Soft Anti Affinity', disabled() { return selectedRows.length === 0 } },
+    { key: 'updateReplicaZoneSoftAntiAffinity', name: 'Update Replica Zone Soft Anti Affinity', disabled() { return selectedRows.length === 0 } },
+    { key: 'updateReplicaDiskSoftAntiAffinity', name: 'Update Replica Disk Soft Anti Affinity', disabled() { return selectedRows.length === 0 } },
+    { key: 'updateOfflineReplicaRebuilding', name: 'Update Offline Replica Rebuilding', disabled() { return selectedRows.length === 0 || selectedRows.some((item) => item.dataEngine !== 'v2') } },
     { key: 'trimFilesystem', name: 'Trim Filesystem', disabled() { return selectedRows.length === 0 || notAttached() } },
   ]
 
@@ -209,12 +242,11 @@ bulkActions.propTypes = {
   showBulkEngineUpgrade: PropTypes.func,
   showBulkChangeVolume: PropTypes.func,
   showBulkAttachHost: PropTypes.func,
-  bulkDetach: PropTypes.func,
+  showBulkDetachHost: PropTypes.func,
   showBulkSalvage: PropTypes.func,
   bulkBackup: PropTypes.func,
   createPVAndPVC: PropTypes.func,
   bulkExpandVolume: PropTypes.func,
-  confirmDetachWithWorkload: PropTypes.func,
   showUpdateBulkReplicaCount: PropTypes.func,
   showUpdateBulkDataLocality: PropTypes.func,
   showUpdateBulkAccessMode: PropTypes.func,

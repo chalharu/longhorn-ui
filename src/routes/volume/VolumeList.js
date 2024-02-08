@@ -16,14 +16,57 @@ import { isVolumeImageUpgradable, isVolumeReplicaNotRedundancy, isVolumeRelicaLi
 import IconBackup from '../../components/Icon/IconBackup'
 import IconStandBackup from '../../components/Icon/IconStandBackup'
 
-function list({ loading, dataSource, engineImages, hosts, showAttachHost, showEngineUpgrade, showRecurring, showSnapshots, detach, deleteVolume, changeVolume, showBackups, takeSnapshot, showSalvage, showUpdateReplicaCount, rollback, rowSelection, sorter, createPVAndPVC, showWorkloadsStatusDetail, showExpansionVolumeSizeModal, showCancelExpansionModal, showRecurringJobModal, onSorterChange, height, confirmDetachWithWorkload, showUpdateDataLocality, showUpdateAccessMode, showUpdateReplicaAutoBalanceModal, showUnmapMarkSnapChainRemovedModal, trimFilesystem, commandKeyDown, replicaSoftAntiAffinitySettingValue, engineUpgradePerNodeLimit, customColumnList, showUpdateSnapshotDataIntegrityModal, onRowClick = f => f }) {
+function list({
+  loading,
+  dataSource,
+  engineImages,
+  hosts,
+  showAttachHost,
+  showEngineUpgrade,
+  showRecurring,
+  showSnapshots,
+  showDetachHost,
+  deleteVolume,
+  changeVolume,
+  showBackups,
+  takeSnapshot,
+  showSalvage,
+  showUpdateReplicaCount,
+  rollback,
+  rowSelection,
+  sorter,
+  createPVAndPVC,
+  showWorkloadsStatusDetail,
+  showExpansionVolumeSizeModal,
+  showCancelExpansionModal,
+  showRecurringJobModal,
+  onSorterChange,
+  height,
+  showUpdateDataLocality,
+  showUpdateAccessMode,
+  showUpdateReplicaAutoBalanceModal,
+  showUnmapMarkSnapChainRemovedModal,
+  trimFilesystem,
+  commandKeyDown,
+  replicaSoftAntiAffinitySettingValue,
+  engineUpgradePerNodeLimit,
+  customColumnList,
+  showUpdateSnapshotDataIntegrityModal,
+  updateSnapshotMaxCount,
+  updateSnapshotMaxSize,
+  showUpdateReplicaSoftAntiAffinityModal,
+  showUpdateReplicaZoneSoftAntiAffinityModal,
+  showUpdateReplicaDiskSoftAntiAffinityModal,
+  showOfflineReplicaRebuildingModal,
+  onRowClick = f => f,
+}) {
   const volumeActionsProps = {
     engineImages,
     showAttachHost,
     showEngineUpgrade,
     showRecurring,
     showSnapshots,
-    detach,
+    showDetachHost,
     showBackups,
     deleteVolume,
     takeSnapshot,
@@ -37,7 +80,6 @@ function list({ loading, dataSource, engineImages, hosts, showAttachHost, showEn
     showCancelExpansionModal,
     changeVolume,
     height,
-    confirmDetachWithWorkload,
     commandKeyDown,
     replicaSoftAntiAffinitySettingValue,
     engineUpgradePerNodeLimit,
@@ -48,6 +90,12 @@ function list({ loading, dataSource, engineImages, hosts, showAttachHost, showEn
     showUnmapMarkSnapChainRemovedModal,
     trimFilesystem,
     showUpdateSnapshotDataIntegrityModal,
+    updateSnapshotMaxCount,
+    updateSnapshotMaxSize,
+    showUpdateReplicaSoftAntiAffinityModal,
+    showUpdateReplicaZoneSoftAntiAffinityModal,
+    showUpdateReplicaDiskSoftAntiAffinityModal,
+    showOfflineReplicaRebuildingModal,
     onRowClick,
   }
   /**
@@ -126,11 +174,28 @@ function list({ loading, dataSource, engineImages, hosts, showAttachHost, showEn
         let statusForWorkload = <Tooltip title={statusForWorkloadMessage}><Icon type="exclamation-circle" className="faulted" style={{ marginLeft: '5px' }} /></Tooltip>
         let stateText = (() => {
           if (text.hyphenToHump() === 'attached' && record.robustness === 'healthy') {
-            return <div className={classnames({ [record.robustness.toLowerCase()]: true, capitalize: true })} style={{ display: 'flex', alignItems: 'center' }}>{ha}{state}{ !record.ready ? statusForWorkload : '' }</div>
+            return (<div
+              className={classnames({ [record.robustness.toLowerCase()]: true, capitalize: true })}
+              style={{ display: 'flex', alignItems: 'center' }}
+              >
+                {ha}{state}{ !record.ready ? statusForWorkload : '' }
+              </div>)
           } else if (text.hyphenToHump() === 'attached' && record.robustness === 'degraded') {
-            return <div className={classnames({ [record.robustness.toLowerCase()]: true, capitalize: true })} style={{ display: 'flex', alignItems: 'center' }}>{ha}{state}{ !record.ready ? statusForWorkload : '' }</div>
+            return (<Tooltip title={record.dataEngine === 'v2' && 'Replica rebuilding will be automatically triggered when the degraded volume is detached'}>
+                <div
+                  className={classnames({ [record.robustness.toLowerCase()]: true, capitalize: true })}
+                  style={{ display: 'flex', alignItems: 'center' }}
+                >
+                  {ha}{state}{ !record.ready ? statusForWorkload : '' }
+                </div>
+              </Tooltip>)
           } else if (text.hyphenToHump() === 'detached' && record.robustness === 'faulted') {
-            return <div className={classnames({ [record.robustness.toLowerCase()]: true, capitalize: true })} style={{ display: 'flex', alignItems: 'center' }}>{ha}{state}{ !record.ready ? statusForWorkload : '' }</div>
+            return (<div
+              className={classnames({ [record.robustness.toLowerCase()]: true, capitalize: true })}
+              style={{ display: 'flex', alignItems: 'center' }}
+              >
+                {ha}{state}{ !record.ready ? statusForWorkload : '' }
+            </div>)
           }
           return text.hyphenToHump()
         })()
@@ -147,7 +212,7 @@ function list({ loading, dataSource, engineImages, hosts, showAttachHost, showEn
             </div>
             {isEncrypted ? <Tooltip title={'Encrypted Volume'}><Icon className="color-warning" style={{ marginRight: 5, marginBottom: 2 }} type="lock" /></Tooltip> : null}
             {statusUpgradingEngine(record)}
-            {upgrade}
+            { upgrade }
             {attchedNodeIsDown ? <Tooltip title={'The attached node is down'}><Icon className="faulted" style={{ transform: 'rotate(45deg)', marginRight: 5 }} type="api" /></Tooltip> : ''}
             {stateText}
             {dataLocalityWarn ? <Tooltip title={'Volume does not have data locality! There is no healthy replica on the same node as the engine'}><Icon style={{ fontSize: '16px', marginLeft: 6 }} className="color-warning" type="warning" /></Tooltip> : ''}
@@ -238,8 +303,7 @@ function list({ loading, dataSource, engineImages, hosts, showAttachHost, showEn
       width: 140,
       sorter: (a, b) => sortTableActualSize(a, b),
       render: (text, record) => {
-        let size = record && record.controllers && record.controllers[0] && record.controllers[0].actualSize ? parseInt(record.controllers[0].actualSize, 10) : 0
-
+        let size = record?.controllers && record.controllers[0] && record.controllers[0].actualSize ? parseInt(record.controllers[0].actualSize, 10) : 0
         return (
           <div>
             <div>{formatMib(size)}</div>
@@ -257,6 +321,20 @@ function list({ loading, dataSource, engineImages, hosts, showAttachHost, showEn
         return (
           <div>
             {formatDate(text)}
+          </div>
+        )
+      },
+    },
+    {
+      title: 'Data Engine',
+      dataIndex: 'dataEngine',
+      key: 'dataEngine',
+      width: 220,
+      sorter: (a, b) => sortTable(a, b, 'dataEngine'),
+      render: (text) => {
+        return (
+          <div>
+            {text}
           </div>
         )
       },
@@ -492,7 +570,6 @@ list.propTypes = {
   height: PropTypes.number,
   changeVolume: PropTypes.func,
   commandKeyDown: PropTypes.bool,
-  confirmDetachWithWorkload: PropTypes.func,
   showExpansionVolumeSizeModal: PropTypes.func,
   showCancelExpansionModal: PropTypes.func,
   showUpdateDataLocality: PropTypes.func,

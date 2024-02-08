@@ -38,13 +38,13 @@ module.exports = {
       timeout: 10 * 60 * 1000,
       "/v1/ws/**": {
         "target": endpoint,
-        "changeOrigin": false,
+        "changeOrigin": true,
         "ws": true,
         "secure": false
       },
       "/v1/": {
         "target": endpoint,
-        "changeOrigin": false
+        "changeOrigin": true
       },
     }
   },
@@ -168,7 +168,7 @@ module.exports = {
     fs: "empty",
     module: "empty"
   },
-  devtool: "source-map",
+  devtool: false,
   optimization: {
     splitChunks: {
       cacheGroups: {
@@ -201,6 +201,7 @@ module.exports = {
       }
     ]),
     new webpack.HotModuleReplacementPlugin(),
-    new ManifestPlugin()
+    new ManifestPlugin(),
+    new webpack.SourceMapDevToolPlugin({})
   ]
 };

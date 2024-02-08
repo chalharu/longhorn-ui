@@ -6,10 +6,11 @@ const confirm = Modal.confirm
 
 function actions({ selected, deleteSystemBackup, createSystemRestore }) {
   const handleMenuClick = (event, record) => {
+    event.domEvent?.stopPropagation?.()
     switch (event.key) {
       case 'delete':
         confirm({
-          title: `Are you sure you want to delete System Backup ${record.name} ?`,
+          title: `Are you sure you want to delete System Backup ${record.name}?`,
           onOk() {
             deleteSystemBackup({ name: record.id })
           },
